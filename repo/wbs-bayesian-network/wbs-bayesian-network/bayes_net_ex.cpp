@@ -301,7 +301,6 @@ void bayes_net_ex()
 		cout << "hit enter to terminate" << endl;
 		cin.get();
 	}
-	system("pause");
 }
 
 

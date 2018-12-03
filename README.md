@@ -16,3 +16,8 @@ Implementierung geeignet bestimmt und ausgibt."
 # strategy
 - creating bayesian network
 - use example data 
+
+# install
+1. Add $(LocalDebuggerWorkingDirectory) to Configuration Properties / VC++ Directories / Include Directory
+2. Add /bigobj to: Configuration Properties / C/C++ / Command Line / Additional Options
+
