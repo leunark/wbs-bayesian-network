@@ -14,6 +14,8 @@
 using namespace dlib;
 using namespace std;
 
+static int callback(void*, int, char**, char**);
+
 int main() {
 	// Setup database
 	sqlite3 *db; // DB pointer
@@ -38,6 +40,9 @@ int main() {
 	if (!file.is_open()) {
 		std::cout << "ERROR: File Open" << std::endl;
 	}
+
+	// Delete first table
+	statements.push_back("drop table if exists data");
 
 	// Read header first line and create create-statement
 	std::string line = "";
@@ -67,8 +72,8 @@ int main() {
 	}
 
 	// Add delete- and drop-statement
-	statements.push_back("delete from data");
-	statements.push_back("drop table data");
+	//statements.push_back("delete from data");
+	//statements.push_back("drop table data");
 
 	// Execute statement list
 	for (int i = 0; i < statements.size(); i++)
@@ -82,6 +87,7 @@ int main() {
 		}
 		std::cout << "sql statement \"" << statements[i] << "\" executed successfully" << std::endl;
 	}
+
 	file.close();
 	
 	// Bayesian network implementation
@@ -106,58 +112,16 @@ int main() {
 			LAST = 8
 		};
 
-		/*
-		// Setup our bayesian network
-		bn.set_number_of_nodes(8);
-		bn.add_edge(Altersgruppe, Verheiratet);
-		bn.add_edge(Altersgruppe, Kinderzahl);
-		bn.add_edge(Verheiratet, Buch);
-		bn.add_edge(Kinderzahl, Buch);
-		bn.add_edge(Abschluss, Beruf);
-		bn.add_edge(Geschlecht, Beruf);
-		bn.add_edge(Beruf, Familieneinkommen);
-		bn.add_edge(Familieneinkommen, Buch);
-
-		// Setup categories for each node
-		set_node_num_values(bn, Altersgruppe, 6);
-		set_node_num_values(bn, Verheiratet, 2);
-		set_node_num_values(bn, Kinderzahl, 5);
-		set_node_num_values(bn, Abschluss, 6);
-		set_node_num_values(bn, Geschlecht, 2);
-		set_node_num_values(bn, Beruf, 8);
-		set_node_num_values(bn, Familieneinkommen, 6);
-		set_node_num_values(bn, Buch, 3);
-
-		// Add conditional probability information for each node with the assignment 
-		// object that allows us to specify the state of each nodes parents. 
-		assignment parent_state;
-
-		// Workflow
-		// 0. Loop through all nodes
-		// 1. Clear parent state: parent_state.clear();
-		// 2. Add parents of node: parent_state.add(X, 1);
-		// 3. Set node probability of all combinations
-		
-		for (int i = 0; i < LAST; i++) 
-		{
-			Node n = static_cast<Node>(i);
-		}
-
-		// parent_state is empty in this case since Altersgruppe is a root node
-		set_node_probability(bn, Altersgruppe, 0, parent_state, 0.01);
-		set_node_probability(bn, Altersgruppe, 1, parent_state, 1 - 0.01);
-		*/
-
 		// Create all nodes
 		std::vector<Node*> nodes = {
-		new Node(Altersgruppe, "Altersgruppe", {"u18","v19b24","v25b35","v36b49","v50b65","ue65"}),
+		new Node(Altersgruppe, "Altersgruppe", {"<18","19-24","25-35","36-49","50-65",">65"}),
 		new Node(Verheiratet, "Verheiratet", { "nein", "ja" }),
-		new Node(Kinderzahl, "Kinderzahl", { "a0","a1","a2","a3","a4" }),
+		new Node(Kinderzahl, "Kinderzahl", { "0","1","2","3","4" }),
 		new Node(Geschlecht, "Geschlecht", {"m","w"}),
 		new Node(Abschluss, "Abschluss", {"keiner","Hauptschule","Realschule","Gymnasium","Hochschule","Promotion"}),
 		new Node(Beruf, "Beruf", {"Angestellter","Arbeiter","Arbeitslos","Fuehrungskraft","Hausfrau","Lehrer","Rentner","Selbstaendig"}),
-		new Node(Familieneinkommen, "Familieneinkommen", { "u1000","v2000b2999","v3000b3999","v4000b4999","ue5000" }),
-		new Node(Buch, "Buch", {"Buch A", "Buch B", "Buch C"})
+		new Node(Familieneinkommen, "Familieneinkommen", { "<1000","2000-2999","3000-3999","4000-4999","5000 und mehr" }),
+		new Node(Buch, "Buch", {"Buch_A", "Buch_B", "Buch_C"})
 		};
 
 		// Create edges
@@ -169,19 +133,71 @@ int main() {
 
 		// Transfer model logic
 		bn.set_number_of_nodes(nodes.size());
-		bn.add_edge(Altersgruppe, Verheiratet);
 		for (int i = 0; i < nodes.size(); i++) {
+			// Set edges with parents
 			for (int j = 0; j < nodes[i]->parents.size(); j++) {
 				bn.add_edge(nodes[i]->value, nodes[i]->parents[j]->value);
 			}
+			// Set number of states
+			set_node_num_values(bn, nodes[i]->value, nodes[i]->states.size());
 		}
 
-		// Generate probabilities for each node
+		// Add conditional probability information for each node with the assignment 
+		// object that allows us to specify the state of each nodes parents 
+		assignment parent_state;
+		
+		// Process every node
 		for (int i = 0; i < nodes.size(); i++) {
-			std::cout << "Node: " << nodes[i]->name << endl << endl;
-			nodes[i]->printCPT();
+			auto cpt = *(nodes[i]->startGeneratingCPT());
+
+			// Process every combo
+			for (int j = 0; j < cpt.size(); j++) {
+				// Build statement for each combo
+				std::string statement = "";
+				std::string statementa = "select 1.00 * (";
+				std::string statementb = "select count(*) from data where ";
+				std:string statementc = "";
+				if (cpt[j].size() > 1) {
+					for (int k = 0; k < cpt[j].size() - 1; k++) {
+						statementb += nodes[i]->parents[k]->name + " = '" + cpt[j][k] + "' and ";
+					}
+					statementc = statementb.substr(0, statementb.size() - 4);
+				}
+				else {
+					statementc = statementb.substr(0, statementb.size() - 6);
+				}
+				statementb += nodes[i]->name + " = '" + cpt[j][cpt[j].size()-1] +"'";
+				statement = statementa + statementb + ") / (" + statementc + ") as val";
+
+				rc = sqlite3_exec(db,statement.c_str(),callback,0,&zErrMsg);
+
+				if (rc != SQLITE_OK)
+				{
+					std::cout << "ERROR: " << sqlite3_errmsg(db) << std::endl;
+					sqlite3_free(zErrMsg);
+				}
+			}
 		}
 
+		// Add delete- and drop-statement
+		statements.clear();
+		statements.push_back("delete from data");
+		statements.push_back("drop table data");
+
+		// Execute statement list
+		for (int i = 0; i < statements.size(); i++)
+		{
+			rc = sqlite3_exec(db, statements[i].c_str(), 0, 0, &zErrMsg);
+			if (rc != SQLITE_OK)
+			{
+				std::cout << std::endl << "ERROR: " << sqlite3_errmsg(db) << std::endl;
+				sqlite3_free(zErrMsg);
+				break;
+			}
+			std::cout << std::endl << "SUCCESS: " << statements[i] << std::endl;
+		}
+
+		sqlite3_close(db);
 	}
 	catch (std::exception& e)
 	{
@@ -191,6 +207,18 @@ int main() {
 		cin.get();
 	}
 
-	sqlite3_close(db);
 	system("pause");
+}
+
+static int callback(void *NotUsed, int argc, char **argv, char **azColName)
+{
+	int i;
+	for (i = 0; i < argc; i++)
+	{
+		// If argv[i] is empty, there was a division with 0 most likely because of no occurrences in 
+		// the select statement
+		cout << azColName[i] << " => " << (argv[i] ? argv[i] : "0") << std::endl;
+	}
+	cout << "\n";
+	return 0;
 }

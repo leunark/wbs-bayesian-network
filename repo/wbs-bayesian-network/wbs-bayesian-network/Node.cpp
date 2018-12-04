@@ -30,9 +30,7 @@ std::vector<std::vector<std::string>>* Node::startGeneratingCPT() {
 
 void Node::generateCPT(std::vector<Node*> list, std::vector<std::vector<std::string>>* result, int depth, std::vector<std::string> combo) {
 	if (depth >= list.size()) {
-		for (int i = 0; i < combo.size(); i++) {
-			result->push_back(combo);
-		}
+		result->push_back(combo);
 	}
 	else {
 		for (int i = 0; i < list[depth]->states.size(); i++)
