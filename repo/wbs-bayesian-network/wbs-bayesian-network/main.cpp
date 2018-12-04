@@ -214,7 +214,7 @@ int main() {
 
 		// Now print out all the probabilities for each node
 		// e.g. P(Altersgruppe=0), P(Altersgruppe=5), P(Geschlecht=1), ...
-		cout << "Using the join tree algorithm:\n";
+		cout << "\n\nPrior probability of each node in the network:\n";
 		for (int i = 0; i < nodes.size(); i++) {
 			for (int j = 0; j < nodes[i]->states.size(); j++) {
 				cout << "p(" << nodes[i]->name.c_str() << "=" << j << ") = " << solution.probability(i)(j) << endl;
@@ -226,16 +226,26 @@ int main() {
 		// C is 1.  We can represent this in the network using the following two function
 		// calls.
 		set_node_value(bn, Altersgruppe, 1);
-		set_node_value(bn, Beruf, 1);
 		set_node_as_evidence(bn, Altersgruppe);
+		set_node_value(bn, Verheiratet, 1);
+		set_node_as_evidence(bn, Verheiratet);
+		set_node_value(bn, Kinderzahl, 1);
+		set_node_as_evidence(bn, Kinderzahl);
+		set_node_value(bn, Geschlecht, 1);
+		set_node_as_evidence(bn, Geschlecht);
+		set_node_value(bn, Abschluss, 1);
+		set_node_as_evidence(bn, Abschluss);
+		set_node_value(bn, Beruf, 2);
 		set_node_as_evidence(bn, Beruf);
+		set_node_value(bn, Familieneinkommen, 1);
+		set_node_as_evidence(bn, Familieneinkommen);
 
 		// Now we want to compute the probabilities of all the nodes in the network again
 		// given that we now know that C is 1.  We can do this as follows:
 		bayesian_network_join_tree solution_with_evidence(bn, join_tree);
 
 		// now print out the probabilities for each node
-		cout << "Using the join tree algorithm:\n";
+		cout << "\n\nSolution with evidence:\n";
 		for (int i = 0; i < nodes.size(); i++) {
 			for (int j = 0; j < nodes[i]->states.size(); j++) {
 				cout << "p(" << nodes[i]->name.c_str() << "=" << j << ") = " << solution_with_evidence.probability(i)(j) << endl;
