@@ -17,7 +17,7 @@ public:
 	std::vector<std::string> states;
 	std::vector<Node*> parents;
 	std::string name;
-	int value;
+	int id;
 	std::vector<std::vector<State>>* startGeneratingCPT();
 	void printCPT();
 private:

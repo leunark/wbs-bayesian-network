@@ -15,89 +15,44 @@
 using namespace dlib;
 using namespace std;
 
+sqlite3* openDatabase(const char* dbname);
+std::vector<std::string> generateInitialStatements(ifstream* file);
+void executeStatements(sqlite3* db, std::vector<std::string> statements);
+double calculateProbability(sqlite3* db, std::string statement, int statesSize);
 static int callback(void*, int, char**, char**);
 
 int main() {
-	// Setup database
+	// Parameters
+	const char* filename = "P001.csv";
+	const char* dbname = "P001.csv";
+
+	// Database
 	sqlite3 *db; // DB pointer
-	char *zErrMsg = 0; // Error message
-	std::vector<std::string> statements;
-	std::string pSQL; // Sql statement
-	int rc; // Connection
 
-	rc = sqlite3_open("programmentwurf.db", &db);
+	// Others
+	std::vector<std::string> statements; // List for sql statements
+	std::string pSQL; // Container for one sql statement
 
-	if (rc)
-	{
-		std::cout << "Can't open database: " << sqlite3_errmsg(db) << "\n";
-	}
-	else
-	{
-		std::cout << "Open database successfully\n\n";
-	}
-
-	// Open file
-	std::ifstream file("P001.csv");
-	if (!file.is_open()) {
-		std::cout << "ERROR: File Open" << std::endl;
-	}
-
-	// Delete first table
-	statements.push_back("drop table if exists data");
-
-	// Read header first line and create create-statement
-	std::string line = "";
-	std::getline(file, line);
-	std::istringstream iss(line);
-	std::string token;
-	pSQL = "create table data (";
-	while (std::getline(iss, token, ';')) {
-		pSQL.append(token);
-		pSQL.append(" varchar(30),");
-	}
-	pSQL = pSQL.substr(0, pSQL.size() - 1);
-	pSQL.append(")");
-	statements.push_back(pSQL);
-
-	// Read every line and create insert-statements
-	while (std::getline(file, line)) {
-		std::istringstream iss(line);
-		std::string token;
-		pSQL = "insert into data values (";
-		while (std::getline(iss, token, ';')) {
-			pSQL.append("'" + token + "',");
-		}
-		pSQL = pSQL.substr(0, pSQL.size() - 1);
-		pSQL.append(")");
-		statements.push_back(pSQL);
-	}
-
-	// Add delete- and drop-statement
-	//statements.push_back("delete from data");
-	//statements.push_back("drop table data");
-
-	// Execute statement list
-	for (int i = 0; i < statements.size(); i++)
-	{
-		rc = sqlite3_exec(db, statements[i].c_str(), 0, 0, &zErrMsg);
-		if (rc != SQLITE_OK)
-		{
-			std::cout << "SQL error: " << sqlite3_errmsg(db) << std::endl;
-			sqlite3_free(zErrMsg);
-			break;
-		}
-		std::cout << "sql statement \"" << statements[i] << "\" executed successfully" << std::endl;
-	}
-
-	file.close();
-	
-	// Bayesian network implementation
 	try
 	{
-		using namespace bayes_node_utils;
-		
-		// Declare bayesian network bn
-		directed_graph<bayes_node>::kernel_1a_c bn;
+		// Open database
+		db = openDatabase(dbname);
+
+		// Open csv file
+		std::ifstream file(filename);
+		if (!file.is_open()) {
+			std::cout << "ERROR: File Open" << std::endl;
+		}
+
+		// Generate statement list
+		statements = generateInitialStatements(&file);
+
+		// Execute statement list
+		executeStatements(db, statements);
+
+		// At this point it is the task of the user to define the structure of the bayesian
+		// network. By using the class Node, the structure can be implemented into a model
+		// independent of dlib.
 
 		// Use an enum to make some more readable names for our nodes
 		enum NodeEnum
@@ -113,59 +68,75 @@ int main() {
 			LAST = 8
 		};
 
-		// Create all nodes
+		// Create nodes with its states
 		std::vector<Node*> nodes = {
-		new Node(Altersgruppe, "Altersgruppe", {"<18","19-24","25-35","36-49","50-65",">65"}),
-		new Node(Verheiratet, "Verheiratet", { "nein", "ja" }),
-		new Node(Kinderzahl, "Kinderzahl", { "0","1","2","3","4" }),
-		new Node(Geschlecht, "Geschlecht", {"m","w"}),
-		new Node(Abschluss, "Abschluss", {"keiner","Hauptschule","Realschule","Gymnasium","Hochschule","Promotion"}),
-		new Node(Beruf, "Beruf", {"Angestellter","Arbeiter","Arbeitslos","Fuehrungskraft","Hausfrau","Lehrer","Rentner","Selbstaendig"}),
-		new Node(Familieneinkommen, "Familieneinkommen", { "<1000","1000-1999","2000-2999","3000-3999","4000-4999","5000 und mehr" }),
-		new Node(Buch, "Buch", {"Buch_A", "Buch_B", "Buch_C"})
+			new Node(Altersgruppe, "Altersgruppe", {"<18","19-24","25-35","36-49","50-65",">65"}),
+			new Node(Verheiratet, "Verheiratet", { "nein", "ja" }),
+			new Node(Kinderzahl, "Kinderzahl", { "0","1","2","3","4" }),
+			new Node(Geschlecht, "Geschlecht", {"m","w"}),
+			new Node(Abschluss, "Abschluss", {"keiner","Hauptschule","Realschule","Gymnasium","Hochschule","Promotion"}),
+			new Node(Beruf, "Beruf", {"Angestellter","Arbeiter","Arbeitslos","Fuehrungskraft","Hausfrau","Lehrer","Rentner","Selbstaendig"}),
+			new Node(Familieneinkommen, "Familieneinkommen", { "<1000","1000-1999","2000-2999","3000-3999","4000-4999","5000 und mehr" }),
+			new Node(Buch, "Buch", {"Buch_A", "Buch_B", "Buch_C"})
 		};
 
-		// Create edges
+		// Set parent-child relations
 		nodes[Verheiratet]->parents = { nodes[Altersgruppe] };
 		nodes[Kinderzahl]->parents = { nodes[Altersgruppe] };
 		nodes[Beruf]->parents = { nodes[Abschluss], nodes[Geschlecht] };
 		nodes[Familieneinkommen]->parents = { nodes[Beruf] };
 		nodes[Buch]->parents = { nodes[Verheiratet], nodes[Kinderzahl], nodes[Familieneinkommen] };
 
-		// Transfer model logic
+		// Now dlib helps us to transfer the data from the model into the bayesian network.
+		// The seperation of the two steps is important to be able to calculate the probabilities
+		// automatically.
+
+		// Bayesian network implementation
+		using namespace bayes_node_utils;
+
+		// Declare bayesian network bn
+		directed_graph<bayes_node>::kernel_1a_c bn;
+
+		// Now the model logic is transferred to the bayesian network.
+		// ´Parent nodes and state sizes of every node are set.
 		bn.set_number_of_nodes(nodes.size());
 		for (int i = 0; i < nodes.size(); i++) {
 			// Set edges with parents
 			for (int j = 0; j < nodes[i]->parents.size(); j++) {
-				bn.add_edge(nodes[i]->parents[j]->value, nodes[i]->value);
+				bn.add_edge(nodes[i]->parents[j]->id, nodes[i]->id);
 			}
 			// Set number of states
-			set_node_num_values(bn, nodes[i]->value, nodes[i]->states.size());
+			set_node_num_values(bn, nodes[i]->id, nodes[i]->states.size());
 		}
 
 		// Add conditional probability information for each node with the assignment 
 		// object that allows us to specify the state of each nodes parents 
 		assignment parent_state;
 		
-		// Checker
+		// A checksum shell guarantee that the sum of all states for one parent combination is 1.
+		// This is mandatory for a complete bayesian network.
 		double checksum = 0;
 
-		// Process every node
+		// In this part statements have to be generated that retrieve
+		// 1. an abosolute number of occurrences for the current current combination: 
+		// Let PX be the xth parent of node N, then a combination would be : 
+		//    P1 P2 ... PX N 
+		// 2. an absolute number of occurrences without the node itself int the combination
+		//	  P1 P2 ... PX
+		// The division of 1. and 2. gives us the probability of the current combination
+
+		// Iterate over every node
 		for (int i = 0; i < nodes.size(); i++) {
-			if (i == 5) {
-				std::cout << "\n break \n";
-			}
-			
-			// Generate CPT
+			// Generate the CPT for current node
 			auto cpt = *(nodes[i]->startGeneratingCPT());
 
-			// Set parent state 
+			// Add all parents to parent state for current node
 			parent_state.clear();
 			for (int k = 0; k < nodes[i]->parents.size(); k++) {
-				parent_state.add(nodes[i]->parents[k]->value,0);
+				parent_state.add(nodes[i]->parents[k]->id,0);
 			}
 
-			// Process every combination
+			// Process every combination within the CPT
 			for (int j = 0; j < cpt.size(); j++) {
 				// Build statement for each combination
 				std::string statement = "";
@@ -175,9 +146,11 @@ int main() {
 				if (cpt[j].size() > 1) {
 					// Iterate over every state of the combination
 					for (int k = 0; k < cpt[j].size() - 1; k++) {
-						statementb += nodes[i]->parents[k]->name + " = '" + cpt[j][k].name + "' and "; // Add combo to statement
-						std::cout << cpt[j][k].name << " "; // Log combination
-						parent_state[cpt[j][k].node->value] = cpt[j][k].pos; // Set parent state
+						statementb += nodes[i]->parents[k]->name + " = '" + cpt[j][k].name + "' and "; // Add combination to statement
+						// Log the current state to get the whole combination eventually
+						std::cout << cpt[j][k].name << " ";
+						// Set states of nodes parents
+						parent_state[cpt[j][k].node->id] = cpt[j][k].pos;
 					}
 					statementc = statementb.substr(0, statementb.size() - 4);
 				}
@@ -187,38 +160,27 @@ int main() {
 
 				// Add last condition to statement, whereas last item will be the node itself!
 				statementb += nodes[i]->name + " = '" + cpt[j][cpt[j].size()-1].name +"'";
-				std::cout << cpt[j][cpt[j].size() - 1].name << " "; // Log combo
-
-				// Statement to get number of occurrences of current combo
+				// Eventually log the last state of the combination
+				std::cout << cpt[j][cpt[j].size() - 1].name << " ";
 				statement = statementa + statementb + ") as z, (" + statementc + ") as n";
-				double* p = new double();
-				*p = -1;
-				rc = sqlite3_exec(db,statement.c_str(),callback,p,&zErrMsg);
-				if (rc != SQLITE_OK)
-				{
-					std::cout << "ERROR: " << sqlite3_errmsg(db) << std::endl;
-					sqlite3_free(zErrMsg);
-					break;
-				}
-				std::cout << endl;
 
-				if (*p == -1) {
-					*p = (double)1 / nodes[i]->states.size();
-				}
-				std::cout << " p=" << *p << std::endl;
-				checksum += *p;
+				// Calculate the probability of current node by fetching occurrences from the database
+				double p = calculateProbability(db, statement, nodes[i]->states.size());
+
+				// Increase checksum by the calculated probability
+				checksum += p;
 
 				// Print parent_state for debugging purposes
 				for (int k = 0; k < cpt[j].size() - 1; k++) {
-					std::cout << "Node" << cpt[j][k].node->value << "::State" << parent_state[cpt[j][k].node->value] << "; ";
+					std::cout << "Node" << cpt[j][k].node->id << "::State" << parent_state[cpt[j][k].node->id] << "; ";
 				}
 				std::cout << std::endl;
 
-				// Set node probability  p(A=?| P1=?, P2=?, ...) = *p
-				std::cout << "set_node_probability" << "(bn," << nodes[i]->value << "," << cpt[j][cpt[j].size() - 1].pos << "," << parent_state.size() << "," << (float)*p << ")" << std::endl;
-				set_node_probability(bn, nodes[i]->value, cpt[j][cpt[j].size() - 1].pos, parent_state, *p);
+				// Set node probability  p(A=?| P1=?, P2=?, ...) = p
+				std::cout << "set_node_probability" << "(bn," << nodes[i]->id << "," << cpt[j][cpt[j].size() - 1].pos << "," << parent_state.size() << "," << p << ")" << std::endl;
+				set_node_probability(bn, nodes[i]->id, cpt[j][cpt[j].size() - 1].pos, parent_state, p);
 
-				// Checker
+				// Log checksum for debugging purposes
 				if (cpt[j][cpt[j].size() - 1].pos == cpt[j][cpt[j].size() - 1].node->states.size() - 1)
 				{
 					std::cout << "Checksum: " << checksum << "\n";
@@ -268,19 +230,12 @@ int main() {
 		statements.push_back("drop table data");
 
 		// Execute statement list
-		for (int i = 0; i < statements.size(); i++)
-		{
-			rc = sqlite3_exec(db, statements[i].c_str(), 0, 0, &zErrMsg);
-			if (rc != SQLITE_OK)
-			{
-				std::cout << std::endl << "ERROR: " << sqlite3_errmsg(db) << std::endl;
-				sqlite3_free(zErrMsg);
-				break;
-			}
-			std::cout << std::endl << "SUCCESS: " << statements[i] << std::endl;
-		}
+		executeStatements(db, statements);
 
+		// Cleanup
 		sqlite3_close(db);
+		file.close();
+
 	}
 	catch (std::exception& e)
 	{
@@ -291,6 +246,103 @@ int main() {
 	}
 
 	system("pause");
+}
+
+sqlite3* openDatabase(const char* dbname) 
+{
+	sqlite3* db;
+	if (sqlite3_open("dbname", &db))
+	{
+		std::cout << "Can't open database: " << sqlite3_errmsg(db) << "\n";
+	}
+	else
+	{
+		std::cout << "Open database successfully\n\n";
+	}
+	return db;
+}
+
+std::vector<std::string> generateInitialStatements(ifstream* file) 
+{
+	// Variables
+	std::vector<std::string> statements;
+	std::string pSQL;
+
+	// Delete first table
+	statements.push_back("drop table if exists data");
+
+	// Read header first line and create create-statement
+	std::string line = "";
+	std::getline(*file, line);
+	std::istringstream iss(line);
+	std::string token;
+	pSQL = "create table data (";
+	while (std::getline(iss, token, ';')) {
+		pSQL.append(token);
+		pSQL.append(" varchar(30),");
+	}
+	pSQL = pSQL.substr(0, pSQL.size() - 1);
+	pSQL.append(")");
+	statements.push_back(pSQL);
+
+	// Read every line and create insert-statements
+	while (std::getline(*file, line)) {
+		std::istringstream iss(line);
+		std::string token;
+		pSQL = "insert into data values (";
+		while (std::getline(iss, token, ';')) {
+			pSQL.append("'" + token + "',");
+		}
+		pSQL = pSQL.substr(0, pSQL.size() - 1);
+		pSQL.append(")");
+		statements.push_back(pSQL);
+	}
+
+	return statements;
+}
+
+// Execute statement list
+void executeStatements(sqlite3* db, std::vector<std::string> statements) 
+{
+	char* zErrMsg;
+	for (int i = 0; i < statements.size(); i++)
+	{
+		if (sqlite3_exec(db, statements[i].c_str(), 0, 0, &zErrMsg))
+		{
+			std::cout << std::endl << "ERROR: " << sqlite3_errmsg(db) << std::endl;
+			sqlite3_free(zErrMsg);
+			break;
+		}
+		std::cout << std::endl << "SUCCESS: " << statements[i] << std::endl;
+	}
+}
+
+double calculateProbability(sqlite3* db, std::string statement, int statesSize) {
+	// Create int pointer
+	double *p = new double();
+	// Set default value (exception case)
+	*p = -1;
+	// Container for error message
+	char* zErrMsg;
+
+	// Execute the statement and process retrieved data in the callback function.
+	// The calculated probability will be written into p from another function which is why 
+	// p is a pointer.
+	if (sqlite3_exec(db, statement.c_str(), callback, p, &zErrMsg) != SQLITE_OK)
+	{
+		std::cout << "ERROR: " << sqlite3_errmsg(db) << std::endl;
+		sqlite3_free(zErrMsg);
+		return -1;
+	}
+	std::cout << endl;
+	
+	// If there are no occurrences in the data set (case p == -1), 
+	// distribute probability equally by dividing 1 with the number of states
+	if (*p == -1) {
+		*p = (double)1 / statesSize;
+	}
+	std::cout << " p=" << *p << std::endl;
+	return *p;
 }
 
 /*

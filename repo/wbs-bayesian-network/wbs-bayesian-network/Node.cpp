@@ -2,14 +2,14 @@
 #include <iostream>
 
 Node::Node() {
-	this->value = -1;
+	this->id = -1;
 	this->name = "";
 	this->states = {};
 	this->parents = {};
 }
 
 Node::Node(int value, std::string name, std::vector<std::string> states, std::vector<Node*> parents) {
-	this->value = value;
+	this->id = value;
 	this->name = name;
 	this->states = states;
 	this->parents = parents;
