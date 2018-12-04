@@ -6,6 +6,11 @@
 class Node
 {
 public:
+	struct State {
+		std::string name;
+		int pos;
+		Node* node;
+	};
 	Node();
 	Node(int value, std::string name, std::vector<std::string> states = {}, std::vector<Node*> parents = {});
 	~Node();
@@ -13,9 +18,9 @@ public:
 	std::vector<Node*> parents;
 	std::string name;
 	int value;
-	std::vector<std::vector<std::string>>* startGeneratingCPT();
+	std::vector<std::vector<State>>* startGeneratingCPT();
 	void printCPT();
 private:
-	void generateCPT(std::vector<Node*> list, std::vector<std::vector<std::string>>* result, int depth, std::vector<std::string> combo);
+	void generateCPT(std::vector<Node*> list, std::vector<std::vector<State>>* result, int depth, std::vector<State> combo);
 };
 

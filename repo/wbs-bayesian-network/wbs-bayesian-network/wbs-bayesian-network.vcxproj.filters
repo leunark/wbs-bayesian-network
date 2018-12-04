@@ -33,9 +33,6 @@
     <ClCompile Include="Node.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="State.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bayes_net_ex.h">
@@ -51,9 +48,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="Node.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="State.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

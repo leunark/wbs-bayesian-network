@@ -19,24 +19,24 @@ Node::~Node() {
 
 }
 
-std::vector<std::vector<std::string>>* Node::startGeneratingCPT() {
+std::vector<std::vector<Node::State>>* Node::startGeneratingCPT() {
 	std::vector<Node*> list = Node::parents;
 	list.push_back(this);
-	std::vector<std::vector<std::string>>* result = new std::vector<std::vector<std::string>>();
+	std::vector<std::vector<Node::State>>* result = new std::vector<std::vector<Node::State>>();
 	*result = {};
 	generateCPT(list, result, 0, {});
 	return result;
 }
 
-void Node::generateCPT(std::vector<Node*> list, std::vector<std::vector<std::string>>* result, int depth, std::vector<std::string> combo) {
+void Node::generateCPT(std::vector<Node*> list, std::vector<std::vector<Node::State>>* result, int depth, std::vector<Node::State> combo) {
 	if (depth >= list.size()) {
 		result->push_back(combo);
 	}
 	else {
 		for (int i = 0; i < list[depth]->states.size(); i++)
 		{
-			std::vector<std::string> tmp = combo;
-			tmp.push_back(list[depth]->states[i]);
+			std::vector<Node::State> tmp = combo;
+			tmp.push_back({ list[depth]->states[i], i, list[depth]});
 			generateCPT(list, result, depth + 1, tmp);
 		}
 	}
@@ -46,7 +46,7 @@ void Node::printCPT() {
 	auto cpt = *startGeneratingCPT();
 	for (int j = 0; j < cpt.size(); j++) {
 		for (int k = 0; k < cpt[j].size(); k++) {
-			std::cout << cpt[j][k] << " ";
+			std::cout << cpt[j][k].name << " ";
 		}
 		std::cout << std::endl;
 	}

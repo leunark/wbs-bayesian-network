@@ -127,7 +127,6 @@
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="sqlite3.c" />
     <ClCompile Include="sqlite_example.cpp" />
-    <ClCompile Include="State.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bayes_net_ex.h" />
@@ -135,7 +134,6 @@
     <ClInclude Include="Node.h" />
     <ClInclude Include="sqlite3.h" />
     <ClInclude Include="sqlite_ex.h" />
-    <ClInclude Include="State.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="P001.csv" />
