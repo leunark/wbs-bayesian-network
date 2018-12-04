@@ -15,6 +15,7 @@ using namespace dlib;
 using namespace std;
 
 static int callback(void*, int, char**, char**);
+void setProbability(int p);
 
 int main() {
 	// Setup database
@@ -156,10 +157,11 @@ int main() {
 				std::string statement = "";
 				std::string statementa = "select 1.00 * (";
 				std::string statementb = "select count(*) from data where ";
-				std:string statementc = "";
+				std::string statementc = "";
 				if (cpt[j].size() > 1) {
 					for (int k = 0; k < cpt[j].size() - 1; k++) {
 						statementb += nodes[i]->parents[k]->name + " = '" + cpt[j][k] + "' and ";
+						std::cout << cpt[j][k] << " ";
 					}
 					statementc = statementb.substr(0, statementb.size() - 4);
 				}
@@ -167,15 +169,25 @@ int main() {
 					statementc = statementb.substr(0, statementb.size() - 6);
 				}
 				statementb += nodes[i]->name + " = '" + cpt[j][cpt[j].size()-1] +"'";
+				std::cout << cpt[j][cpt[j].size() - 1] << " ";
+				// statement retrieves the propability of the current combo of current node 
 				statement = statementa + statementb + ") / (" + statementc + ") as val";
+				
+				float* p = new float();
+				*p = 1000;
 
-				rc = sqlite3_exec(db,statement.c_str(),callback,0,&zErrMsg);
-
+				rc = sqlite3_exec(db,statement.c_str(),callback,p,&zErrMsg);
 				if (rc != SQLITE_OK)
 				{
 					std::cout << "ERROR: " << sqlite3_errmsg(db) << std::endl;
 					sqlite3_free(zErrMsg);
+					break;
 				}
+				std::cout << *p << endl;
+
+				// Set parent state
+				//for (int k = 0; k < nodes[i]->parents.size(); k++) {}
+				//set_node_probability(bn, )
 			}
 		}
 
@@ -210,15 +222,21 @@ int main() {
 	system("pause");
 }
 
-static int callback(void *NotUsed, int argc, char **argv, char **azColName)
+/*
+ * void*, :: Data provided in the 4th argument of sqlite3_exec()
+ * int,   :: The number of columns in row
+ * char**,:: An array of strings representing fields in the row
+ * char** :: An array of strings representing column names
+ */
+static int callback(void *param, int argc, char **argv, char **azColName)
 {
-	int i;
-	for (i = 0; i < argc; i++)
+	float lastVal;
+	for (int i = 0; i < argc; i++)
 	{
-		// If argv[i] is empty, there was a division with 0 most likely because of no occurrences in 
-		// the select statement
-		cout << azColName[i] << " => " << (argv[i] ? argv[i] : "0") << std::endl;
+		// If argv[i] is empty, there was a division with 0 most likely because of no occurrences in the select statement
+		lastVal = (argv[i] ? strtof(argv[i], NULL) : 0.0f);
 	}
-	cout << "\n";
+	float* p = reinterpret_cast<float*>(param);
+	*p = lastVal;
 	return 0;
 }
