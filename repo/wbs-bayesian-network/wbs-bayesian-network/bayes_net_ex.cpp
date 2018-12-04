@@ -202,8 +202,13 @@ void bayes_net_ex()
 		// node really has a value of 1.  That is to say, we now have evidence that 
 		// C is 1.  We can represent this in the network using the following two function
 		// calls.
+		set_node_value(bn, A, 1);
+		set_node_value(bn, B, 1);
 		set_node_value(bn, C, 1);
+		set_node_as_evidence(bn, A);
+		set_node_as_evidence(bn, B);
 		set_node_as_evidence(bn, C);
+
 
 		// Now we want to compute the probabilities of all the nodes in the network again
 		// given that we now know that C is 1.  We can do this as follows:
@@ -228,7 +233,6 @@ void bayes_net_ex()
 		// edges from our bayesian network then we must recompute our join_tree.  But in this example
 		// all we did was change the value of a bayes_node object (we made node C be evidence)
 		// so we are ok.
-
 
 
 

@@ -24,7 +24,7 @@ static int callback(void*, int, char**, char**);
 int main() {
 	// Parameters
 	const char* filename = "P001.csv";
-	const char* dbname = "P001.csv";
+	const char* dbname = "programmentwurf.db";
 
 	// Database
 	sqlite3 *db; // DB pointer
@@ -221,6 +221,27 @@ int main() {
 			}
 		}
 
+		// Now to make things more interesting let's say that we have discovered that the C 
+		// node really has a value of 1.  That is to say, we now have evidence that 
+		// C is 1.  We can represent this in the network using the following two function
+		// calls.
+		set_node_value(bn, Altersgruppe, 1);
+		set_node_value(bn, Beruf, 1);
+		set_node_as_evidence(bn, Altersgruppe);
+		set_node_as_evidence(bn, Beruf);
+
+		// Now we want to compute the probabilities of all the nodes in the network again
+		// given that we now know that C is 1.  We can do this as follows:
+		bayesian_network_join_tree solution_with_evidence(bn, join_tree);
+
+		// now print out the probabilities for each node
+		cout << "Using the join tree algorithm:\n";
+		for (int i = 0; i < nodes.size(); i++) {
+			for (int j = 0; j < nodes[i]->states.size(); j++) {
+				cout << "p(" << nodes[i]->name.c_str() << "=" << j << ") = " << solution_with_evidence.probability(i)(j) << endl;
+			}
+		}
+
 		// Finally, before the program ends, we clear the SQLITE database by executing
 		// a delete and drop statement on the table "data".
 
@@ -244,6 +265,8 @@ int main() {
 		cout << "hit enter to terminate" << endl;
 		cin.get();
 	}
+
+	//bayes_net_ex();
 
 	system("pause");
 }
