@@ -201,15 +201,13 @@ int main() {
 		join_tree_type join_tree;
 
 		// Now we need to populate the join_tree with data from our bayesian network.  The next  
-		// function calls do this.  Explaining exactly what they do is outside the scope of this
-		// example.  Just think of them as filling join_tree with information that is useful 
-		// later on for dealing with our bayesian network.  
+		// function calls do this. 
 		create_moral_graph(bn, join_tree);
 		create_join_tree(join_tree, join_tree);
 
 		// Now that we have a proper join_tree we can use it to obtain a solution to our
-		// bayesian network.  Doing this is as simple as declaring an instance of
-		// the bayesian_network_join_tree object as follows:
+		// bayesian network by declaring an instance of the bayesian_network_join_tree object 
+		// as follows:
 		bayesian_network_join_tree solution(bn, join_tree);
 
 		// Now print out all the probabilities for each node
@@ -225,8 +223,10 @@ int main() {
 		// node really has a value of 1.  That is to say, we now have evidence that 
 		// C is 1.  We can represent this in the network using the following two function
 		// calls.
-		set_node_value(bn, Altersgruppe, 1);
+		
+		set_node_value(bn, Altersgruppe, 0);
 		set_node_as_evidence(bn, Altersgruppe);
+		/*
 		set_node_value(bn, Verheiratet, 1);
 		set_node_as_evidence(bn, Verheiratet);
 		set_node_value(bn, Kinderzahl, 1);
@@ -239,6 +239,9 @@ int main() {
 		set_node_as_evidence(bn, Beruf);
 		set_node_value(bn, Familieneinkommen, 1);
 		set_node_as_evidence(bn, Familieneinkommen);
+		set_node_value(bn, Buch, 1);
+		set_node_as_evidence(bn, Buch);
+		*/
 
 		// Now we want to compute the probabilities of all the nodes in the network again
 		// given that we now know that C is 1.  We can do this as follows:
@@ -275,8 +278,6 @@ int main() {
 		cout << "hit enter to terminate" << endl;
 		cin.get();
 	}
-
-	//bayes_net_ex();
 
 	system("pause");
 }
