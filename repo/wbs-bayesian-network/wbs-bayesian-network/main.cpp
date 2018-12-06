@@ -226,7 +226,6 @@ int main() {
 		// iterate through all nodes except Buch
 		for (int i = 0; i < NodeEnum::Buch; i++) {
 			do {
-				system("cls");
 				cout << endl;
 				cout << endl;
 				cout << endl;
@@ -248,29 +247,39 @@ int main() {
 						set_node_as_evidence(bn, i);
 					}
 					success = 1;
+					system("cls");
 				}
 				else {
 					// clear invalid input from cin
 					cin.clear();
 					cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 					cout << endl;
+					system("cls");
 					cout << "INVALID INPUT, PLEASE RETRY!";
 					success = 0;
 				}
 				// repeat this procedure until the state value has been successfully specified
 			} while (!success);
 		}
+
 		system("cls");
+
+		cout << "-------------------------------------------------------------------------------------" << endl;
+		cout << endl;
+		cout << endl;
 
 		// Now we want to compute the probabilities of all the nodes in the network again
 		// given that we now know that C is 1.  We can do this as follows:
 		bayesian_network_join_tree solution_with_evidence(bn, join_tree);
 
 		// now print out the probabilities for each node
+		cout << "Solution with evidence:\n";
 		logs << "\n\nSolution with evidence:\n";
+
 		for (int i = 0; i < nodes.size(); i++) {
 			for (int j = 0; j < nodes[i]->states.size(); j++) {
-				logs << "p(" << nodes[i]->name.c_str() << "=" << j << ") = " << solution_with_evidence.probability(i)(j) << endl;
+				cout << "p(" << nodes[i]->name.c_str() << "=" << nodes[i]->getNameOfState(j) << ") = " << solution_with_evidence.probability(i)(j) << endl;
+				logs << "p(" << nodes[i]->name.c_str() << "=" << nodes[i]->getNameOfState(j) << ") = " << solution_with_evidence.probability(i)(j) << endl;
 			}
 		}
 

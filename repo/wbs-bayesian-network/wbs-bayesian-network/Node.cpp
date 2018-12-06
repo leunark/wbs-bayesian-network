@@ -51,3 +51,10 @@ void Node::printCPT() {
 		std::cout << std::endl;
 	}
 }
+
+std::string Node::getNameOfState(int pos) const {
+	if (pos < 0 || pos >= this->states.size()) {
+		return "";
+	}
+	return this->states[pos];
+}

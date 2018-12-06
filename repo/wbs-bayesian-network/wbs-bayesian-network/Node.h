@@ -20,6 +20,7 @@ public:
 	int id;
 	std::vector<std::vector<State>>* startGeneratingCPT();
 	void printCPT();
+	std::string getNameOfState(int pos) const;
 private:
 	void generateCPT(std::vector<Node*> list, std::vector<std::vector<State>>* result, int depth, std::vector<State> combo);
 };
