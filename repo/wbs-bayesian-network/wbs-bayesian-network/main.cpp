@@ -223,10 +223,13 @@ int main() {
 		// node really has a value of 1.  That is to say, we now have evidence that 
 		// C is 1.  We can represent this in the network using the following two function
 		// calls.
-		
-		set_node_value(bn, Altersgruppe, 0);
-		set_node_as_evidence(bn, Altersgruppe);
+
+		// Hier Marcel in ner Schleife nacheinander für jeden Node alle States ausgeben,
+		// sowie natürlich eine Auswahl einlesen, wobei auch keine Angabe gemacht werden kann.
+		// Alle nodes befinden sich in dem Vektor nodes, einfach so zugreifen nodes[i]->...
 		/*
+		set_node_value(bn, Altersgruppe, 1);
+		set_node_as_evidence(bn, Altersgruppe);
 		set_node_value(bn, Verheiratet, 1);
 		set_node_as_evidence(bn, Verheiratet);
 		set_node_value(bn, Kinderzahl, 1);
