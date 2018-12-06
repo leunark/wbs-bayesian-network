@@ -56,4 +56,9 @@
       <Filter>Ressourcendateien</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="logs.log">
+      <Filter>Ressourcendateien</Filter>
+    </Text>
+  </ItemGroup>
 </Project>

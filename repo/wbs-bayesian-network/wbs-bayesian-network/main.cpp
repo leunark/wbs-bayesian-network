@@ -21,9 +21,12 @@ void executeStatements(sqlite3* db, std::vector<std::string> statements);
 double calculateProbability(sqlite3* db, std::string statement, int statesSize);
 static int callback(void*, int, char**, char**);
 
+ofstream logs;
+
 int main() {
 	// Parameters
 	const char* filename = "P001.csv";
+	const char* logfilename = "logs.log";
 	const char* dbname = "programmentwurf.db";
 
 	// Database
@@ -35,14 +38,21 @@ int main() {
 
 	try
 	{
+		// op
+		logs.open(logfilename);
+		logs.clear();
+
 		// Open database
 		db = openDatabase(dbname);
 
 		// Open csv file
 		std::ifstream file(filename);
 		if (!file.is_open()) {
-			std::cout << "ERROR: File Open" << std::endl;
+			logs << "ERROR: File could not be opened!" << std::endl;
+			return 1;
 		}
+
+		logs << "Starting data transfar to SQLite database" << endl;
 
 		// Generate statement list
 		statements = generateInitialStatements(&file);
@@ -98,7 +108,7 @@ int main() {
 		directed_graph<bayes_node>::kernel_1a_c bn;
 
 		// Now the model logic is transferred to the bayesian network.
-		// ´Parent nodes and state sizes of every node are set.
+		// Parent nodes and state sizes of every node are set.
 		bn.set_number_of_nodes(nodes.size());
 		for (int i = 0; i < nodes.size(); i++) {
 			// Set edges with parents
@@ -112,10 +122,6 @@ int main() {
 		// Add conditional probability information for each node with the assignment 
 		// object that allows us to specify the state of each nodes parents 
 		assignment parent_state;
-		
-		// A checksum shell guarantee that the sum of all states for one parent combination is 1.
-		// This is mandatory for a complete bayesian network.
-		double checksum = 0;
 
 		// In this part statements have to be generated that retrieve
 		// 1. an abosolute number of occurrences for the current current combination: 
@@ -124,6 +130,8 @@ int main() {
 		// 2. an absolute number of occurrences without the node itself int the combination
 		//	  P1 P2 ... PX
 		// The division of 1. and 2. gives us the probability of the current combination
+
+		logs << endl << endl << "Starting calculation of probabilities!" << endl;
 
 		// Iterate over every node
 		for (int i = 0; i < nodes.size(); i++) {
@@ -148,7 +156,7 @@ int main() {
 					for (int k = 0; k < cpt[j].size() - 1; k++) {
 						statementb += nodes[i]->parents[k]->name + " = '" + cpt[j][k].name + "' and "; // Add combination to statement
 						// Log the current state to get the whole combination eventually
-						std::cout << cpt[j][k].name << " ";
+						logs << cpt[j][k].name << " ";
 						// Set states of nodes parents
 						parent_state[cpt[j][k].node->id] = cpt[j][k].pos;
 					}
@@ -160,33 +168,25 @@ int main() {
 
 				// Add last condition to statement, whereas last item will be the node itself!
 				statementb += nodes[i]->name + " = '" + cpt[j][cpt[j].size()-1].name +"'";
-				// Eventually log the last state of the combination
-				std::cout << cpt[j][cpt[j].size() - 1].name << " ";
+				// Eventually statement combines all parts to receive the number of elements of the 
+				// combination with and without the node itself
+				logs << cpt[j][cpt[j].size() - 1].name << " ";
 				statement = statementa + statementb + ") as z, (" + statementc + ") as n";
 
 				// Calculate the probability of current node by fetching occurrences from the database
 				double p = calculateProbability(db, statement, nodes[i]->states.size());
 
-				// Increase checksum by the calculated probability
-				checksum += p;
-
-				// Print parent_state for debugging purposes
+				// Log parent_state
 				for (int k = 0; k < cpt[j].size() - 1; k++) {
-					std::cout << "Node" << cpt[j][k].node->id << "::State" << parent_state[cpt[j][k].node->id] << "; ";
+					logs << "Node" << cpt[j][k].node->id;
 				}
-				std::cout << std::endl;
+				logs << std::endl;
 
 				// Set node probability  p(A=?| P1=?, P2=?, ...) = p
-				std::cout << "set_node_probability" << "(bn," << nodes[i]->id << "," << cpt[j][cpt[j].size() - 1].pos << "," << parent_state.size() << "," << p << ")" << std::endl;
+				logs << "set_node_probability" << "(bn," << nodes[i]->id << "," << cpt[j][cpt[j].size() - 1].pos << "," << parent_state.size() << "," << p << ")" << std::endl;
 				set_node_probability(bn, nodes[i]->id, cpt[j][cpt[j].size() - 1].pos, parent_state, p);
-
-				// Log checksum for debugging purposes
-				if (cpt[j][cpt[j].size() - 1].pos == cpt[j][cpt[j].size() - 1].node->states.size() - 1)
-				{
-					std::cout << "Checksum: " << checksum << "\n";
-					checksum = 0;
-				}
 			}
+			logs << endl;
 		}
 
 		// We have now finished setting up our bayesian network.  So let's compute some 
@@ -212,45 +212,22 @@ int main() {
 
 		// Now print out all the probabilities for each node
 		// e.g. P(Altersgruppe=0), P(Altersgruppe=5), P(Geschlecht=1), ...
-		cout << "\n\nPrior probability of each node in the network:\n";
+		logs << "\n\nPrior probability of each node in the network:\n";
 		for (int i = 0; i < nodes.size(); i++) {
 			for (int j = 0; j < nodes[i]->states.size(); j++) {
-				cout << "p(" << nodes[i]->name.c_str() << "=" << j << ") = " << solution.probability(i)(j) << endl;
+				logs << "p(" << nodes[i]->name.c_str() << "=" << j << ") = " << solution.probability(i)(j) << endl;
 			}
 		}
 
-		// Now to make things more interesting let's say that we have discovered that the C 
-		// node really has a value of 1.  That is to say, we now have evidence that 
-		// C is 1.  We can represent this in the network using the following two function
-		// calls.
-
-		// Hier Marcel in ner Schleife nacheinander für jeden Node alle States ausgeben,
-		// sowie natürlich eine Auswahl einlesen, wobei auch keine Angabe gemacht werden kann.
-		// Alle nodes befinden sich in dem Vektor nodes, einfach so zugreifen nodes[i]->...
-		/*
-		set_node_value(bn, Altersgruppe, 1);
-		set_node_as_evidence(bn, Altersgruppe);
-		set_node_value(bn, Verheiratet, 1);
-		set_node_as_evidence(bn, Verheiratet);
-		set_node_value(bn, Kinderzahl, 1);
-		set_node_as_evidence(bn, Kinderzahl);
-		set_node_value(bn, Geschlecht, 1);
-		set_node_as_evidence(bn, Geschlecht);
-		set_node_value(bn, Abschluss, 1);
-		set_node_as_evidence(bn, Abschluss);
-		set_node_value(bn, Beruf, 2);
-		set_node_as_evidence(bn, Beruf);
-		set_node_value(bn, Familieneinkommen, 1);
-		set_node_as_evidence(bn, Familieneinkommen);
-		set_node_value(bn, Buch, 1);
-		set_node_as_evidence(bn, Buch);
-		*/
+		// Ask for user input to represent evidences in the network which
+		// is achieved with the functions set_node_value and set_node_as_evidence
 
 		int input;
 		int success;
 		// iterate through all nodes except Buch
 		for (int i = 0; i < NodeEnum::Buch; i++) {
 			do {
+				system("cls");
 				cout << endl;
 				cout << endl;
 				cout << endl;
@@ -284,19 +261,17 @@ int main() {
 				// repeat this procedure until the state value has been successfully specified
 			} while (!success);
 		}
-
-
-		
+		system("cls");
 
 		// Now we want to compute the probabilities of all the nodes in the network again
 		// given that we now know that C is 1.  We can do this as follows:
 		bayesian_network_join_tree solution_with_evidence(bn, join_tree);
 
 		// now print out the probabilities for each node
-		cout << "\n\nSolution with evidence:\n";
+		logs << "\n\nSolution with evidence:\n";
 		for (int i = 0; i < nodes.size(); i++) {
 			for (int j = 0; j < nodes[i]->states.size(); j++) {
-				cout << "p(" << nodes[i]->name.c_str() << "=" << j << ") = " << solution_with_evidence.probability(i)(j) << endl;
+				logs << "p(" << nodes[i]->name.c_str() << "=" << j << ") = " << solution_with_evidence.probability(i)(j) << endl;
 			}
 		}
 
@@ -339,7 +314,13 @@ int main() {
 		// Cleanup
 		sqlite3_close(db);
 		file.close();
+		logs.close();
 
+		// Remove db file
+		if (remove(dbname) != 0)
+			logs << "Error deleting database file";
+		else
+			logs << "Database file successfully deleted" << endl;
 	}
 	catch (std::exception& e)
 	{
@@ -355,13 +336,13 @@ int main() {
 sqlite3* openDatabase(const char* dbname) 
 {
 	sqlite3* db;
-	if (sqlite3_open("dbname", &db))
+	if (sqlite3_open(dbname, &db))
 	{
-		std::cout << "Can't open database: " << sqlite3_errmsg(db) << "\n";
+		logs << "Can't open database: " << sqlite3_errmsg(db) << "\n";
 	}
 	else
 	{
-		std::cout << "Open database successfully\n\n";
+		logs << "Opened database successfully\n\n";
 	}
 	return db;
 }
@@ -413,11 +394,11 @@ void executeStatements(sqlite3* db, std::vector<std::string> statements)
 	{
 		if (sqlite3_exec(db, statements[i].c_str(), 0, 0, &zErrMsg))
 		{
-			std::cout << std::endl << "ERROR: " << sqlite3_errmsg(db) << std::endl;
+			logs << std::endl << "ERROR: " << sqlite3_errmsg(db) << std::endl;
 			sqlite3_free(zErrMsg);
 			break;
 		}
-		std::cout << std::endl << "SUCCESS: " << statements[i] << std::endl;
+		logs << std::endl << "SUCCESS: " << statements[i] << std::endl;
 	}
 }
 
@@ -434,18 +415,16 @@ double calculateProbability(sqlite3* db, std::string statement, int statesSize) 
 	// p is a pointer.
 	if (sqlite3_exec(db, statement.c_str(), callback, p, &zErrMsg) != SQLITE_OK)
 	{
-		std::cout << "ERROR: " << sqlite3_errmsg(db) << std::endl;
+		logs << "ERROR: " << sqlite3_errmsg(db) << std::endl;
 		sqlite3_free(zErrMsg);
 		return -1;
 	}
-	std::cout << endl;
 	
 	// If there are no occurrences in the data set (case p == -1), 
 	// distribute probability equally by dividing 1 with the number of states
 	if (*p == -1) {
 		*p = (double)1 / statesSize;
 	}
-	std::cout << " p=" << *p << std::endl;
 	return *p;
 }
 
@@ -458,15 +437,13 @@ double calculateProbability(sqlite3* db, std::string statement, int statesSize) 
 static int callback(void *param, int argc, char **argv, char **azColName)
 {
 	int z, n;
-	std::cout << std::endl;
 	
 	if (argc == 2) {
 		z = stoi(argv[0]);
 		n = stoi(argv[1]);
-		cout << "Z:" << z << " N:" << n;
 	}
 	else {
-		std::cout << "ERROR!!!!" << std::endl;
+		logs << "ERROR: Callback expects only two arguments from the select statement!" << std::endl;
 	}
 	
 	double* p = reinterpret_cast<double*>(param);

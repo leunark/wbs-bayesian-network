@@ -138,6 +138,9 @@
   <ItemGroup>
     <None Include="P001.csv" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="logs.log" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
