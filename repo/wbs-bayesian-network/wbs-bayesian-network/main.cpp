@@ -246,6 +246,48 @@ int main() {
 		set_node_as_evidence(bn, Buch);
 		*/
 
+		int input;
+		int success;
+		// iterate through all nodes except Buch
+		for (int i = 0; i < NodeEnum::Buch; i++) {
+			do {
+				cout << endl;
+				cout << endl;
+				cout << endl;
+				cout << "Please enter the value for '" << nodes[i]->name << "' (number 0-" << (nodes[i]->states.size() - 1) << ")" << endl;
+				cout << endl;
+
+				// print all states of this node
+				for (int j = 0; j < nodes[i]->states.size(); j++) {
+					cout << "   (" << j << ") :  " << nodes[i]->states[j] << endl;
+				}
+				cout << "   (9) :  nicht relevant" << endl;
+				cout << endl;
+
+				// is input an integer and has a valid value
+				if ((cin >> input) && ((input >= 0 && input < nodes[i]->states.size()) || input == 9)) {
+					if (input != 9) {
+						// set node evidence to the correct value
+						set_node_value(bn, i, input);
+						set_node_as_evidence(bn, i);
+					}
+					success = 1;
+				}
+				else {
+					// clear invalid input from cin
+					cin.clear();
+					cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+					cout << endl;
+					cout << "INVALID INPUT, PLEASE RETRY!";
+					success = 0;
+				}
+				// repeat this procedure until the state value has been successfully specified
+			} while (!success);
+		}
+
+
+
+
 		// Now we want to compute the probabilities of all the nodes in the network again
 		// given that we now know that C is 1.  We can do this as follows:
 		bayesian_network_join_tree solution_with_evidence(bn, join_tree);
