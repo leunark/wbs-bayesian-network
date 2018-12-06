@@ -21,13 +21,7 @@
     <ClCompile Include="dlib\all\source.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="bayes_net_ex.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="sqlite3.c">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="sqlite_example.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="Node.cpp">
@@ -35,13 +29,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="bayes_net_ex.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="sqlite3.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="sqlite_ex.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="csv.h">

@@ -121,19 +121,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="bayes_net_ex.cpp" />
     <ClCompile Include="dlib\all\source.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="sqlite3.c" />
-    <ClCompile Include="sqlite_example.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="bayes_net_ex.h" />
     <ClInclude Include="csv.h" />
     <ClInclude Include="Node.h" />
     <ClInclude Include="sqlite3.h" />
-    <ClInclude Include="sqlite_ex.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="P001.csv" />

@@ -10,7 +10,6 @@
 #include <dlib/graph.h>
 #include <dlib/directed_graph.h>
 #include <Node.h>
-#include <bayes_net_ex.h>
 
 using namespace dlib;
 using namespace std;
