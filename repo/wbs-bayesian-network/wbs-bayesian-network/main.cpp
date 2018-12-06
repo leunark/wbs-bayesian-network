@@ -254,7 +254,7 @@ int main() {
 				cout << endl;
 				cout << endl;
 				cout << endl;
-				cout << "Please enter the value for '" << nodes[i]->name << "' (number 0-" << (nodes[i]->states.size() - 1) << ")" << endl;
+				cout << "Please enter the value for '" << nodes[i]->name.c_str() << "' (number 0-" << (nodes[i]->states.size() - 1) << ")" << endl;
 				cout << endl;
 
 				// print all states of this node
@@ -286,7 +286,7 @@ int main() {
 		}
 
 
-
+		
 
 		// Now we want to compute the probabilities of all the nodes in the network again
 		// given that we now know that C is 1.  We can do this as follows:
@@ -299,6 +299,31 @@ int main() {
 				cout << "p(" << nodes[i]->name.c_str() << "=" << j << ") = " << solution_with_evidence.probability(i)(j) << endl;
 			}
 		}
+
+		cout << endl;
+		cout << endl;
+		cout << "-------------------------------------------------------------------------------------" << endl;
+		cout << endl;
+
+		const dlib::matrix<double, 1L> buch = solution_with_evidence.probability(NodeEnum::Buch);
+
+		if (buch(0) > buch(1) && buch(0) > buch(2)) {
+			cout << " We recommend you to choose " << nodes[NodeEnum::Buch]->states[0] << "." << endl;
+		}
+		else if (buch(1) > buch(0) && buch(1) > buch(2)) {
+			cout << " We recommend you to choose " << nodes[NodeEnum::Buch]->states[1] << "." << endl;
+		}
+		else if (buch(2) > buch(0) && buch(2) > buch(1)) {
+			cout << " We recommend you to choose " << nodes[NodeEnum::Buch]->states[2] << "." << endl;
+		}
+		else {
+			cout << " Unfortunately we cannot give you a suitable book recommendation." << endl;
+		}
+
+		cout << endl;
+		cout << "-------------------------------------------------------------------------------------" << endl;
+		cout << endl;
+		cout << endl;
 
 		// Finally, before the program ends, we clear the SQLITE database by executing
 		// a delete and drop statement on the table "data".
