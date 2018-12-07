@@ -52,6 +52,7 @@ int main() {
 		}
 
 		logs << "Starting data transfar to SQLite database" << endl;
+		cout << "Calculating ... " << endl;
 
 		// Generate statement list
 		statements = generateInitialStatements(&file);
@@ -91,10 +92,10 @@ int main() {
 
 		// Set parent-child relations
 		nodes[Verheiratet]->parents = { nodes[Altersgruppe] };
-		nodes[Kinderzahl]->parents = { nodes[Altersgruppe] };
-		nodes[Beruf]->parents = { nodes[Abschluss], nodes[Geschlecht] };
+		nodes[Kinderzahl]->parents = { nodes[Verheiratet] };
+		nodes[Beruf]->parents = { nodes[Abschluss] };
 		nodes[Familieneinkommen]->parents = { nodes[Beruf] };
-		nodes[Buch]->parents = { nodes[Verheiratet], nodes[Kinderzahl], nodes[Familieneinkommen] };
+		nodes[Buch]->parents = { nodes[Kinderzahl], nodes[Altersgruppe], nodes[Geschlecht], nodes[Abschluss] };
 
 		// Now dlib helps us to transfer the data from the model into the bayesian network.
 		// The seperation of the two steps is important to be able to calculate the probabilities
@@ -220,6 +221,8 @@ int main() {
 
 		// Ask for user input to represent evidences in the network which
 		// is achieved with the functions set_node_value and set_node_as_evidence
+		system("cls");
+
 
 		int input;
 		int success;
